@@ -55,32 +55,59 @@ def generate_ideas_view(request):
             top_p=0.9,
         )
 
+       # api/views.py -> inside generate_ideas_view function
+
+# --- (Keep code before this) ---
+
         generated_text = llm_response_text.strip()
-        logger.info(f"Received response from HuggingFace:\n{generated_text}")
+        logger.info(f"✅ Received response from Hugging Face:\n{generated_text}")
 
-        # Parse generated ideas
+        # --- Parse the LLM Response (Improved with Regex) ---
+        import re # Make sure to import re at the top of the file
+
         ideas = []
-        potential_lines = generated_text.split('\n')
-        for line in potential_lines:
-            cleaned_line = line.strip()
-            if cleaned_line and (cleaned_line[0].isdigit() and (cleaned_line[1] == '.' or cleaned_line[1:3] == '. ')):
-                idea = cleaned_line.split('.', 1)[-1].strip()
-                if idea:
-                    ideas.append(idea)
-            elif cleaned_line:
-                ideas.append(cleaned_line)
+        # Regex to find lines starting with number(s), dot, optional space, then capture the rest
+        # (?m) enables multi-line mode (so ^ matches start of line)
+        matches = re.findall(r"^\s*\d+\.\s*(.*)", generated_text, re.MULTILINE)
 
-        ideas = ideas[:5]
-        logger.info(f"Parsed ideas: {ideas}")
+        for idea_match in matches:
+            idea = idea_match.strip()
+            if idea: # Ensure it's not empty after stripping
+                ideas.append(idea)
+            if len(ideas) >= 5: # Stop after finding 5 valid ideas
+                break
 
+        # Fallback if regex finds nothing (maybe model used different format?)
         if not ideas:
-            logger.error("Failed to parse valid ideas from LLM response")
-            return Response(
-                {
-                    "message": "Error: Could not parse keywords from the AI response. Raw response: " + generated_text
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+             logger.warning("Regex parsing failed, trying simple split...")
+             potential_lines = generated_text.split('\n')
+             for line in potential_lines:
+                 cleaned_line = line.strip()
+                 # Basic check if it looks like an item (doesn't start with junk)
+                 if cleaned_line and not cleaned_line.startswith('<') and not cleaned_line.startswith('"'):
+                      # Try removing potential leading list markers if they exist
+                      if cleaned_line[0].isdigit() and (cleaned_line[1] == '.' or cleaned_line[1:3] == '. '):
+                          idea = cleaned_line.split('.', 1)[-1].strip()
+                      else:
+                          idea = cleaned_line # Assume it's the idea itself
+                      if idea:
+                          ideas.append(idea)
+                      if len(ideas) >= 5:
+                          break
+
+        # Ensure we only take the first 5 if more were found by chance
+        ideas = ideas[:5]
+
+        logger.info(f"⚙️ Parsed ideas (Improved): {ideas}")
+
+        # --- Handle Parsing Failure ---
+        if not ideas:
+             logger.error("❌ Failed to parse valid ideas from LLM response even with fallback.")
+             # Provide more context in the error message if possible
+             return Response(
+                 {"message": "Error: Could not parse keywords from the AI response. Raw response: " + generated_text},
+                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+             )
 
         # Format Data for Frontend
         root_node = {
