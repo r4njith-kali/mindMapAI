@@ -15,9 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.contrib import admin
-from django.urls import path
+# api/urls.py
 
+from django.urls import path
+from . import views # Import views from the current directory (api app)
+
+# Define URL patterns specific to this app
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    # When someone visits '/generate-ideas/', call the generate_ideas_view function
+    path('generate-ideas/', views.generate_ideas_view, name='generate_ideas'),
+    # Add other API endpoints for this app here later
 ]
