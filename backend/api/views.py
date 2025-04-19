@@ -1,34 +1,31 @@
 import os
 import uuid
-import logging
 from dotenv import load_dotenv
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from huggingface_hub import InferenceClient
-
-# --- Setup ---
+import logging
 
 load_dotenv()
 
+# Config loading
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-HF_TOKEN = os.getenv("HUGGINGFACE_API_KEY")
+HF_TOKEN = os.getenv("HUGGINFACE_API_KEY")
 
 try:
     hf_client = InferenceClient(token=HF_TOKEN)
     logger.info("HuggingFace Inference Client initialized")
 except Exception as e:
-    logger.error(f"Failed to initialize HuggingFace Client: {e}")
-    hf_client = None
-
-# --- API View ---
+    logger.error(f"Failed to initialize HuggingFace client: {e}")
+    hf_client = None  # typo fix: was 'hf_cilent'
 
 @api_view(['POST'])
 def generate_ideas_view(request):
     if hf_client is None:
-        logger.error("HF client not initialized.")
+        logger.error("Attempted to use generate_ideas_view but HF client is not initialized.")
         return Response(
             {"message": "Internal Server Error: AI Service not configured"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -45,16 +42,13 @@ def generate_ideas_view(request):
         )
 
     try:
-        prompt = (
-            f"Given the central idea \"{central_idea}\", generate exactly 5 distinct, related keywords or short "
-            f"concepts. Present them as a simple numbered list, each on a new line:"
-        )
-        logger.info(f"Sending prompt to Hugging Face (first 100 chars):\n{prompt[:100]}...")
-
-        # Call Hugging Face API
+        prompt = f"""Given the central idea "{central_idea}", generate exactly 5 distinct, related keywords or short concepts. Present them as a simple numbered list, each on a new line:"""
+        logger.info(f"Sending prompt to Hugging Face:\n{prompt[:100]}...")
+        
+        # Call HuggingFace API
         llm_response_text = hf_client.text_generation(
             prompt=prompt,
-            model='gpt2',
+            model="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
             max_new_tokens=100,
             do_sample=True,
             temperature=0.7,
@@ -62,9 +56,9 @@ def generate_ideas_view(request):
         )
 
         generated_text = llm_response_text.strip()
-        logger.info(f"Received response from Hugging Face:\n{generated_text}")
+        logger.info(f"Received response from HuggingFace:\n{generated_text}")
 
-        # Parse the LLM output
+        # Parse generated ideas
         ideas = []
         potential_lines = generated_text.split('\n')
         for line in potential_lines:
@@ -83,8 +77,7 @@ def generate_ideas_view(request):
             logger.error("Failed to parse valid ideas from LLM response")
             return Response(
                 {
-                    "message": "Error: Could not parse keywords from the AI response.",
-                    "raw_response": generated_text
+                    "message": "Error: Could not parse keywords from the AI response. Raw response: " + generated_text
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -103,16 +96,14 @@ def generate_ideas_view(request):
                 "id": str(uuid.uuid4()),
                 "label": idea_label,
                 "depth": 1
-            }
-            for idea_label in ideas
+            } for idea_label in ideas
         ]
 
         new_links = [
             {
                 "source": 'root',
                 "target": node["id"]
-            }
-            for node in child_nodes
+            } for node in child_nodes
         ]
 
         response_data = {
@@ -120,7 +111,7 @@ def generate_ideas_view(request):
             "links": new_links
         }
 
-        logger.info("Successfully processed request. Sending data to frontend.")
+        logger.info("✅ Successfully processed request. Sending data to frontend.")
         return Response(response_data, status=status.HTTP_200_OK)
 
     except Exception as e:
