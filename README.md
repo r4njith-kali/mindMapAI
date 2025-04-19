@@ -1,7 +1,3 @@
-Okay, here is a comprehensive README.md file suitable for your project's current state. It includes a description, features, technology stack, setup instructions, and how to run the application.
-
-Copy and paste the following into a file named README.md in the root directory of your MindMapAI project (MindMapAI/README.md).
-
 # MindMapAI 💡🧠
 
 MindMapAI is a web application designed to help you visualize and expand ideas using Artificial Intelligence. Enter a central concept, and the application leverages a Hugging Face Language Model via its Inference API to generate related keywords or concepts, displaying them as an interactive force-directed mind map.
