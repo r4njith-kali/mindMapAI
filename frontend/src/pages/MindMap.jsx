@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import ForceGraph from './components/ForceGraph'; // adjust path if needed
+import ForceGraph from '../components/ForceGraph'; // adjust path if needed
 import { v4 as uuidv4 } from 'uuid'; // optional, if you add nodes later
 
 

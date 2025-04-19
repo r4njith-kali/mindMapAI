@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import LandingPage from './LandingPage';
-import MindMap from './MindMap';
+import LandingPage from './pages/LandingPage';
+import MindMap from './pages/MindMap';
 
 const App = () => (
   <Router>
